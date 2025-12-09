@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -O0 -Wall -Wextra -Wpedantic -g CMakeFiles/server.dir/Sources/main/ServerMain.cpp.o -o server  -Wl,-rpath,/home/wjl/project/project_root/ServiceProject/build: libtraining.so -ldbus-glib-1 -ldbus-1 -lgobject-2.0 -lglib-2.0 -lpthread -lgio-2.0 -lssl -lcrypto -lgobject-2.0 -lglib-2.0 -lpthread 

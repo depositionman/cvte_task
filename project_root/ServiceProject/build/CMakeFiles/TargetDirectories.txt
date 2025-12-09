@@ -1,0 +1,8 @@
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/training.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/server.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/edit_cache.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/rebuild_cache.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/list_install_components.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/install.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/install/local.dir
+/home/wjl/project/project_root/ServiceProject/build/CMakeFiles/install/strip.dir
