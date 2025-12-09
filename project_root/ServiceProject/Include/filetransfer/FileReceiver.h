@@ -3,7 +3,7 @@
 #include <sys/types.h>
 
 // 初始化文件接收器（创建线程池）
-int init_file_receiver(size_t thread_pool_size = 0);
+int init_file_receiver(size_t thread_pool_size = 0, size_t memory_pool_blocks = 100);
 
 // 清理文件接收器（释放线程池）
 int cleanup_file_receiver();
