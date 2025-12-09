@@ -13,14 +13,12 @@
 #include <iomanip>
 #include "FileTransfer.h"
 #include "FileSender.h"
-#include "MemoryPool.h"
 #include "ThreadPool.h"
 #include "ClientDBus.h"
 #include <unordered_map>
 #include <condition_variable>
 
 // 全局实例
-static std::unique_ptr<MemoryPool> memory_pool_;
 static std::unique_ptr<ThreadPool> thread_pool_;
 static std::unique_ptr<ClientDBus> dbus_client_;
 
@@ -94,55 +92,37 @@ void process_file_chunk(const std::string& filepath, off_t offset, int chunk_ind
         return;
     }
 
-    // 从内存池分配块
-    MemoryBlock* block = memory_pool_->allocate(userid);
-    if (!block) {
-        {
-            std::lock_guard<std::mutex> lock(error_mutex_);
-            std::cerr << "[FileSender] 内存池分配失败" << std::endl;
-        }
-        close(fd);
-        return;
-    }
+    // 直接使用FileChunk结构体，避免不必要的内存池中转
+    FileChunk chunk{}; // 使用花括号初始化
+    
+    // 设置文件块信息
+    chunk.fileIndex = chunk_index;
+    chunk.totalChunks = total_chunks;
+    chunk.fileLength = file_length;
+    chunk.fileMode = mode;
+    chunk.isLastChunk = (chunk_index == total_chunks - 1);
+    
+    // 安全复制字符串
+    strncpy(chunk.userid, userid.c_str(), sizeof(chunk.userid) - 1);
+    chunk.userid[sizeof(chunk.userid) - 1] = '\0';
+    strncpy(chunk.fileName, filepath.c_str(), sizeof(chunk.fileName) - 1);
+    chunk.fileName[sizeof(chunk.fileName) - 1] = '\0';
 
-    // 读取文件数据到内存块
+    // 直接读取文件数据到chunk.data
     lseek(fd, offset, SEEK_SET);
-    int read_len = read(fd, block->data, memory_pool_->get_block_data_size());
+    int read_len = read(fd, chunk.data, sizeof(chunk.data));
     if (read_len < 0) {
         {
             std::lock_guard<std::mutex> lock(error_mutex_);
             std::cerr << "[FileSender] 文件读取失败: " << filepath << std::endl;
         }
-        memory_pool_->deallocate(block);
         close(fd);
         return;
     }
-
-    block->size = read_len;
-    block->fileIndex = chunk_index;
-    block->totalChunks = total_chunks;
-    strncpy(block->fileName, filepath.c_str(), sizeof(block->fileName) - 1);
-    block->fileName[sizeof(block->fileName) - 1] = '\0';
-    block->fileLength = file_length;
-    block->fileMode = mode;
-
-    // 创建FileChunk结构用于发送
-    FileChunk chunk{}; // 使用花括号初始化，避免memset破坏可能的std::string成员
-    memcpy(chunk.data, block->data, read_len);
-    strncpy(chunk.userid, userid.c_str(), sizeof(chunk.userid) - 1);
-    strncpy(chunk.fileName, filepath.c_str(), sizeof(chunk.fileName) - 1);
-    chunk.fileIndex = chunk_index;
-    chunk.totalChunks = total_chunks;
     chunk.chunkLength = read_len;
-    chunk.fileLength = file_length;
-    chunk.fileMode = mode;
-    chunk.isLastChunk = (chunk_index == total_chunks - 1);
 
     // 发送文件块
     send_file_chunk(chunk);
-
-    // 释放内存块
-    memory_pool_->deallocate(block);
     
     // 关闭文件描述符
     close(fd);
@@ -166,11 +146,8 @@ void process_file_chunk(const std::string& filepath, off_t offset, int chunk_ind
 }
 
 // 初始化文件发送器
-bool init_file_sender(size_t memory_pool_blocks, size_t thread_pool_size) {
+bool init_file_sender(size_t thread_pool_size) {
     try {
-        // 创建内存池
-        memory_pool_ = std::make_unique<MemoryPool>(1024, memory_pool_blocks);
-        
         // 创建线程池
         thread_pool_ = std::make_unique<ThreadPool>(thread_pool_size);
         
@@ -191,14 +168,13 @@ bool init_file_sender(size_t memory_pool_blocks, size_t thread_pool_size) {
 
 // 清理文件发送器
 void cleanup_file_sender() {
-    memory_pool_.reset();
     thread_pool_.reset();
     dbus_client_.reset();
     std::cout << "[FileSender] 清理完成" << std::endl;
 }
 
 void send_file(const char* filepath, const char* userid, mode_t mode) {
-    if (!memory_pool_ || !thread_pool_) {
+    if (!thread_pool_) {
         std::cerr << "[FileSender] 未初始化" << std::endl;
         return;
     }
@@ -326,16 +302,6 @@ void send_entry(const char* path, const char* userid, mode_t mode) {
         send_folder(path, userid, mode);
     } else {
         send_file(path, userid, mode);
-    }
-}
-
-// 获取内存池状态
-void get_memory_pool_status(size_t& total_blocks, size_t& used_blocks) {
-    if (memory_pool_) {
-        memory_pool_->get_status(total_blocks, used_blocks);
-    } else {
-        total_blocks = 0;
-        used_blocks = 0;
     }
 }
 

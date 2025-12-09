@@ -1,11 +1,10 @@
 #pragma once
 #include <sys/types.h>
 #include <string>
-#include "MemoryPool.h"
 #include "ThreadPool.h"
 
 // 初始化文件发送器（创建内存池和线程池）
-bool init_file_sender(size_t memory_pool_blocks = 100, size_t thread_pool_size = 0);
+bool init_file_sender(size_t thread_pool_size = 0);
 
 // 清理文件发送器（释放内存池和线程池）
 void cleanup_file_sender();

@@ -176,7 +176,7 @@ void TestService::broadcastTestBoolChanged(bool param) {
             listener->OnTestBoolChanged(param);
         }
     }
-    // D-Bus信号广播（跨进程通知client）
+    // D-Bus信号广播
     extern DBusAdapter* g_dbus_adapter;
     if (g_dbus_adapter) {
         g_dbus_adapter->emitTestBoolChanged(param);

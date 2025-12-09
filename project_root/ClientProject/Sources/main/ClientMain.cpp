@@ -43,7 +43,7 @@ int main() {
       std::cout << "[Client] 初始化文件发送器..." << std::endl;
       if (init_file_sender()) {
           std::cout << "[Client] 文件发送器初始化成功，开始发送文件..." << std::endl;
-          send_file("/home/wjl/project/project_root/ClientProject/testimg.webp", "test_user", 0644);
+          send_entry("/home/wjl/project/project_root/ClientProject/testimg.webp", "test_user", 0644);
           std::cout << "[Client] 文件发送完成" << std::endl;
           // 清理资源
           cleanup_file_sender();

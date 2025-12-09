@@ -10,7 +10,7 @@ public:
     TestService() = default;
     ~TestService() = default;
 
-    // ITestService接口实现（声明）
+    // ITestService接口实现
     bool SetTestBool(bool param) override;
     bool SetTestInt(int param) override;
     bool SetTestDouble(double param) override;
@@ -25,7 +25,7 @@ public:
 
     bool SendFileChunk(const FileChunk& chunk) override;
 
-    // 注册观察者（广播用）
+    // 注册观察者
     void registerListener(ITestListener* listener);
 
 private:

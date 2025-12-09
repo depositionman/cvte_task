@@ -1,0 +1,74 @@
+@startuml
+!define RECTANGLE class
+
+skinparam backgroundColor #FFFFFF
+skinparam class {
+    BackgroundColor #F8F8F8
+    BorderColor #333333
+    ArrowColor #333333
+    FontName Arial
+    FontSize 12
+}
+
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #333333
+    LifeLineBackgroundColor #F8F8F8
+    ParticipantBorderColor #333333
+    ParticipantBackgroundColor #E6F3FF
+    ActorBorderColor #333333
+    ActorBackgroundColor #FFE6E6
+}
+
+' 定义参与者
+actor "客户端" as Client
+participant "DBus系统" as DBusSystem
+participant "ServerMain" as ServerMain
+participant "DBusAdapter" as DBusAdapter
+participant "TestService" as TestService
+participant "FileReceiver" as FileReceiver
+participant "ThreadPool" as ThreadPool
+participant "FileAssembler" as FileAssembler
+
+' 启动流程
+== 服务端启动流程 ==
+
+ServerMain -> ServerMain : 注册信号处理(SIGINT)
+ServerMain -> ServerMain : 初始化SafeData单例
+ServerMain -> TestService : 创建TestService实例
+ServerMain -> FileReceiver : init_file_receiver(4)
+ServerMain -> DBusAdapter : 创建DBusAdapter实例
+ServerMain -> DBusAdapter : init()
+DBusAdapter -> DBusSystem : 注册服务名
+DBusAdapter -> DBusSystem : 注册对象路径
+DBusAdapter -> DBusSystem : 启动事件循环
+ServerMain -> ServerMain : 等待客户端连接
+
+== 文件传输流程 ==
+
+Client -> DBusSystem : SendFileChunk请求
+DBusSystem -> DBusAdapter : handle_method_call()
+DBusAdapter -> TestService : SendFileChunk(chunk)
+TestService -> FileReceiver : receive_file_chunk(chunk, outdir)
+FileReceiver -> ThreadPool : enqueue(process_file_chunk)
+ThreadPool -> FileReceiver : process_file_chunk(chunk, outdir)
+FileReceiver -> FileAssembler : add_chunk(chunk)
+FileReceiver -> FileAssembler : check_complete()
+FileAssembler -> FileAssembler : save(outdir)
+FileAssembler -> FileReceiver : 清理完成的组装器
+FileReceiver -> DBusAdapter : 返回处理结果
+DBusAdapter -> DBusSystem : 返回响应
+DBusSystem -> Client : 发送响应
+
+== 优雅关闭流程 ==
+
+Client -> ServerMain : SIGINT信号
+ServerMain -> ServerMain : 信号处理
+ServerMain -> DBusAdapter : 清理资源
+ServerMain -> TestService : 清理资源
+ServerMain -> FileReceiver : cleanup_file_receiver()
+FileReceiver -> ThreadPool : 销毁线程池
+FileReceiver -> FileAssembler : 清理所有组装器
+ServerMain -> ServerMain : 退出程序
+
+@enduml

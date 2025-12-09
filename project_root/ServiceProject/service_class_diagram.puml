@@ -1,0 +1,115 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam class {
+    BackgroundColor #F8F8F8
+    BorderColor #333333
+    ArrowColor #333333
+    FontName Arial
+    FontSize 10
+}
+
+' 定义类
+class ServerMain {
+    - g_dbus_adapter: DBusAdapter*
+    - g_test_service: TestService*
+    + main(): int
+    + signalHandler(sig: int): void
+}
+
+class DBusAdapter {
+    - test_service_: ITestService*
+    - main_loop_: GMainLoop*
+    - connection_: GDBusConnection*
+    - introspection_data_: GDBusNodeInfo*
+    - registration_id_: guint
+    + init(): bool
+    + runLoop(): void
+    + emitTestBoolChanged(value: bool): void
+    + emitTestIntChanged(value: int): void
+    + emitTestDoubleChanged(value: double): void
+    + emitTestStringChanged(value: string): void
+    + emitTestInfoChanged(info: TestInfo): void
+}
+
+interface ITestService {
+    + SetTestBool(param: bool): bool
+    + SetTestInt(param: int): bool
+    + SetTestDouble(param: double): bool
+    + SetTestString(param: string): bool
+    + SetTestInfo(param: TestInfo): bool
+    + GetTestBool(): bool
+    + GetTestInt(): int
+    + GetTestDouble(): double
+    + GetTestString(): string
+    + GetTestInfo(): TestInfo
+    + SendFileChunk(chunk: FileChunk): bool
+}
+
+class TestService {
+    - listeners_: vector<ITestListener*>
+    - listener_mutex_: mutex
+    + SetTestBool(param: bool): bool
+    + SetTestInt(param: int): bool
+    + SetTestDouble(param: double): bool
+    + SetTestString(param: string): bool
+    + SetTestInfo(param: TestInfo): bool
+    + GetTestBool(): bool
+    + GetTestInt(): int
+    + GetTestDouble(): double
+    + GetTestString(): string
+    + GetTestInfo(): TestInfo
+    + SendFileChunk(chunk: FileChunk): bool
+    + registerListener(listener: ITestListener*): void
+}
+
+class FileReceiver {
+    - receiver_thread_pool: ThreadPool*
+    - file_assemblers: map<string, FileAssembler>
+    - assemblers_mutex: mutex
+    + init_file_receiver(thread_count: size_t): int
+    + cleanup_file_receiver(): int
+    + receive_file_chunk(chunk: FileChunk, outdir: string): int
+    + process_file_chunk(chunk: FileChunk, outdir: string): void
+    + get_receiver_thread_pool_size(): size_t
+}
+
+class FileAssembler {
+    - chunks: vector<vector<char>>
+    - total_chunks: int
+    - fileLength: int
+    - filename: string
+    - fileMode: mode_t
+    - userid: string
+    - received: int
+    - mutex_: mutex
+    + add_chunk(chunk: FileChunk): void
+    + complete(): bool
+    + save(outdir: string): void
+}
+
+class ThreadPool {
+    - workers: vector<thread>
+    - tasks: queue<function<void()>>
+    - queue_mutex: mutex
+    - condition: condition_variable
+    - stop: bool
+    + enqueue(task: function<void()>): void
+    + get_thread_count(): size_t
+}
+
+' 定义关系
+ServerMain --> DBusAdapter : 创建并管理
+ServerMain --> TestService : 创建并管理
+DBusAdapter ..> ITestService : 依赖接口
+TestService ..|> ITestService : 实现接口
+TestService --> FileReceiver : 调用文件接收
+FileReceiver --> ThreadPool : 使用线程池
+FileReceiver --> FileAssembler : 管理文件组装器
+
+' 添加注释
+note top of ServerMain: 服务端主程序\n负责初始化所有组件\n处理信号和资源清理
+note right of DBusAdapter: D-Bus通信适配器\n处理客户端请求\n广播信号通知
+note left of TestService: 核心业务逻辑\n实现ITestService接口\n管理数据存储
+note bottom of FileReceiver: 文件接收管理器\n多线程处理文件块\n组装完整文件
+
+@enduml
