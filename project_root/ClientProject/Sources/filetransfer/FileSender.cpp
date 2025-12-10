@@ -236,7 +236,7 @@ void cleanup_file_sender() {
     std::cout << "[FileSender] 清理完成" << std::endl;
 }
 
-void send_file(const char* filepath, const char* userid, mode_t mode, const char* transferId) {
+void send_file(const std::string& filepath, const std::string& userid, mode_t mode, const std::string& transferId) {
     if (!thread_pool_) {
         std::cerr << "[FileSender] 未初始化" << std::endl;
         return;
@@ -253,7 +253,7 @@ void send_file(const char* filepath, const char* userid, mode_t mode, const char
 
     // 获取文件信息
     struct stat st;
-    if (stat(filepath, &st) < 0) {
+    if (stat(filepath.c_str(), &st) < 0) {
         std::cerr << "[FileSender] 无法获取文件信息: " << filepath << std::endl;
         {
             std::lock_guard<std::mutex> lock(fd_mutex_);
@@ -269,7 +269,7 @@ void send_file(const char* filepath, const char* userid, mode_t mode, const char
     std::cout << "[FileSender] 开始发送文件: " << filepath 
               << " 大小: " << file_length << " 字节" 
               << " 总块数: " << total_chunks 
-              << " 传输ID: " << (transferId && transferId[0] ? transferId : "无") << std::endl;
+              << " 传输ID: " << (!transferId.empty() ? transferId : "无") << std::endl;
 
     // 初始化进度跟踪器
     {
@@ -298,7 +298,7 @@ void send_file(const char* filepath, const char* userid, mode_t mode, const char
                                            std::string(userid), 
                                            mode, 
                                            static_cast<int>(file_length),
-                                           std::string(transferId ? transferId : ""));
+                                           std::string(transferId));
         futures.push_back(std::move(future));
     }
 
@@ -331,8 +331,8 @@ void send_file(const char* filepath, const char* userid, mode_t mode, const char
     }
 }
 
-void send_folder(const char* folder, const char* userid, mode_t mode, const char* transferId) {
-    DIR* dir = opendir(folder);
+void send_folder(const std::string& folder, const std::string& userid, mode_t mode, const std::string& transferId) {
+    DIR* dir = opendir(folder.c_str());
     if (!dir) {
         std::cerr << "[FileSender] 无法打开文件夹: " << folder << std::endl;
         return;
@@ -343,6 +343,7 @@ void send_folder(const char* folder, const char* userid, mode_t mode, const char
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
         
         std::string fullpath = std::string(folder) + "/" + entry->d_name;
+        // std::cout << "[FileSender] 发送文件夹项: " << fullpath << std::endl;
         struct stat st;
         if (stat(fullpath.c_str(), &st) < 0) continue;
         
@@ -350,18 +351,20 @@ void send_folder(const char* folder, const char* userid, mode_t mode, const char
             send_folder(fullpath.c_str(), userid, mode, transferId);
         } else {
             // 使用线程池发送文件
-            thread_pool_->enqueue(send_file, fullpath.c_str(), userid, mode, transferId);
+            send_file(fullpath, userid, mode, transferId);
         }
     }
     closedir(dir);
 }
 
-void send_entry(const char* path, const char* userid, mode_t mode, const char* transferId) {
+void send_entry(const std::string& path, const std::string& userid, mode_t mode, const std::string& transferId) {
     struct stat st;
-    if (stat(path, &st) < 0) {
+    if (stat(path.c_str(), &st) < 0) {
         std::cerr << "[FileSender] 无法获取文件信息: " << path << std::endl;
         return;
     }
+
+    // std::cout << "[FileSender] 发送入口: " << path << std::endl;
     
     if (S_ISDIR(st.st_mode)) {
         send_folder(path, userid, mode, transferId);

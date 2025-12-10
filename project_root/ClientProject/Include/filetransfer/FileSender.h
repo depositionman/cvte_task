@@ -16,13 +16,13 @@ void set_dbus_client(ClientDBus* dbus_client);
 void cleanup_file_sender();
 
 // 发送文件
-void send_file(const char* filepath, const char* userid, mode_t mode, const char* transferId = "");
+void send_file(const std::string& filepath, const std::string& userid, mode_t mode, const std::string& transferId = "");
 
 // 发送文件夹
-void send_folder(const char* folder, const char* userid, mode_t mode, const char* transferId = "");
+void send_folder(const std::string& folder, const std::string& userid, mode_t mode, const std::string& transferId = "");
 
 // 发送单个条目（文件或文件夹）
-void send_entry(const char* path, const char* userid, mode_t mode, const char* transferId = "");
+void send_entry(const std::string& path, const std::string& userid, mode_t mode, const std::string& transferId = "");
 
 // 获取内存池状态
 void get_memory_pool_status(size_t& total_blocks, size_t& used_blocks);

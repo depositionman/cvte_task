@@ -11,9 +11,11 @@
 #include "FileSender.h"
 
 ClientDBus client;
-std::string videoPath = "/home/wjl/project/project_root/ClientProject/testvideo.mp4";
+std::string videoPath = "/home/wjl/project/project_root/ClientProject/testfile/testvideo.mp4";
 std::string transferId = "video_transfer_001";
 std::string userId = "test_user";
+
+std::string folderPath = "/home/wjl/project/project_root/ClientProject/testfile";
 
 void signalHandler(int sig) {
     if (sig == SIGINT) {
@@ -59,7 +61,23 @@ void send_file_test() {
     std::cout << "传输ID: " << transferId << std::endl;
     std::cout << "用户ID: " << userId << std::endl;
     
-    send_entry(videoPath.c_str(), userId.c_str(), 0644, transferId.c_str());
+    send_entry(videoPath, userId, 0644, transferId);
+}
+
+void send_folderPath_test() {
+    std::cout << "\n=== 发送测试文件夹 ===" << std::endl;
+    // 检查文件是否存在
+    struct stat fileStat;
+    if (stat(folderPath.c_str(), &fileStat) != 0) {
+        std::cerr << "文件不存在: " << folderPath << std::endl;
+        return;
+    }
+    
+    std::cout << "开始发送文件: " << folderPath << std::endl;
+    std::cout << "传输ID: " << transferId << std::endl;
+    std::cout << "用户ID: " << userId << std::endl;
+    
+    send_entry(folderPath, userId, 0644, transferId);
 }
 
 void gain_transferStatus_missblock() {
@@ -123,12 +141,19 @@ int main() {
     
     // 发送文件测试
     // send_file_test();
+
+    // 发送文件夹测试
+    send_folderPath_test();
     
     // 测试获取传输状态和缺失块列表
     // gain_transferStatus_missblock();
     
     // 测试断点续传功能
-    resume_send_file_test();
+    // resume_send_file_test();
+
+    // 等待传输完成
+    std::cout << "\n=== 等待传输完成 ===" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     
     
     // 清理文件发送器
