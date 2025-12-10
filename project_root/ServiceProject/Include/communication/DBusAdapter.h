@@ -22,6 +22,7 @@ private:
     GMainLoop* main_loop_ = nullptr;
     GDBusNodeInfo* introspection_data_;
     guint registration_id_;
+    guint name_owner_id_;
     GDBusConnection* connection_;
 
     static void handle_method_call(GDBusConnection* connection,

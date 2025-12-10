@@ -4,10 +4,10 @@
 
 // MemoryBlock 构造函数
 MemoryBlock::MemoryBlock() : data(nullptr), is_used(false), size(0) {
-    // 分配1KB的数据体
-    data = new char[1024];
+    // 分配数据体，与FileChunk.data大小匹配
+    data = new char[FILE_CHUNK_SIZE];
     if (data) {
-        memset(data, 0, 1024);
+        memset(data, 0, FILE_CHUNK_SIZE);
         memset(client_id, 0, sizeof(client_id));
     }
 }

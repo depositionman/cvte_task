@@ -143,20 +143,47 @@ TestInfo TestService::GetTestInfo() {
 
 // ITestService接口实现 - 文件传输方法
 bool TestService::SendFileChunk(const FileChunk& chunk) {
-    std::cout << "[TestService] SendFileChunk: fileName=" << chunk.fileName 
-              << ", fileIndex=" << chunk.fileIndex 
-              << ", totalChunks=" << chunk.totalChunks 
-              << ", chunkLength=" << chunk.chunkLength 
-              << ", fileLength=" << chunk.fileLength 
-              << ", isLastChunk=" << std::boolalpha << chunk.isLastChunk << std::endl;
+    // std::cout << "[TestService] SendFileChunk: fileName=" << chunk.fileName 
+    //           << ", fileIndex=" << chunk.fileIndex 
+    //           << ", totalChunks=" << chunk.totalChunks 
+    //           << ", chunkLength=" << chunk.chunkLength 
+    //           << ", fileLength=" << chunk.fileLength 
+    //           << ", isLastChunk=" << std::boolalpha << chunk.isLastChunk 
+    //           << ", transferId=" << chunk.transferId << std::endl;
     
     // 设置输出目录为当前目录
     std::string outdir = ".";
     
     // 将文件块传递给FileReceiver处理
     ::receive_file_chunk(chunk, outdir);
-    std::cout << "[TestService] 文件块已传递给FileReceiver处理" << std::endl;
+    // std::cout << "[TestService] 文件块已传递给FileReceiver处理" << std::endl;
     return true;
+}
+
+// 获取需要重传块的信息
+TransferStatus TestService::GetTransferStatus(const std::string& transferId, const std::string& userid, const std::string& fileName) {
+    
+    // 调用FileReceiver获取传输状态
+    return ::get_transfer_status(transferId, userid, fileName);
+}
+
+std::vector<int> TestService::GetMissingChunks(const std::string& transferId, const std::string& userid, const std::string& fileName) {
+    std::cout << "[TestService] GetMissingChunks: transferId=" << transferId 
+              << ", userid=" << userid 
+              << ", fileName=" << fileName << std::endl;
+    
+    // 调用FileReceiver获取缺失块列表
+    return ::get_missing_chunks(transferId, userid, fileName);
+}
+
+bool TestService::ResumeTransfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk) {
+    std::cout << "[TestService] ResumeTransfer: transferId=" << transferId 
+              << ", userid=" << userid 
+              << ", fileName=" << fileName 
+              << ", startChunk=" << startChunk << std::endl;
+    
+    // 调用FileReceiver恢复传输
+    return ::resume_transfer(transferId, userid, fileName, startChunk);
 }
 
 // 观察者模式相关方法

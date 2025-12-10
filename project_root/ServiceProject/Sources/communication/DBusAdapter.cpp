@@ -56,7 +56,20 @@ static const gchar introspection_xml[] =
     "      <arg type='i' name='fileLength' direction='in'/>"
     "      <arg type='u' name='fileMode' direction='in'/>"
     "      <arg type='b' name='isLastChunk' direction='in'/>"
+    "      <arg type='s' name='transferId' direction='in'/>"
     "      <arg type='b' name='result' direction='out'/>"
+    "    </method>"
+    "    <method name='GetTransferStatus'>"
+    "      <arg type='s' name='transferId' direction='in'/>"
+    "      <arg type='s' name='userid' direction='in'/>"
+    "      <arg type='s' name='fileName' direction='in'/>"
+    "      <arg type='(sisiiuibtt)' name='status' direction='out'/>"
+    "    </method>"
+    "    <method name='GetMissingChunks'>"
+    "      <arg type='s' name='transferId' direction='in'/>"
+    "      <arg type='s' name='userid' direction='in'/>"
+    "      <arg type='s' name='fileName' direction='in'/>"
+    "      <arg type='ai' name='missingChunks' direction='out'/>"
     "    </method>"
     "    <signal name='TestBoolChanged'>"
     "      <arg type='b' name='value'/>"
@@ -81,14 +94,41 @@ DBusAdapter::DBusAdapter(ITestService* service)
       registration_id_(0), connection_(nullptr) {}
 
 DBusAdapter::~DBusAdapter() {
+    // 停止主循环
     if (main_loop_) {
         g_main_loop_quit(main_loop_);
         g_main_loop_unref(main_loop_);
+        main_loop_ = nullptr;
     }
+    
+    // 注销D-Bus对象
+    if (connection_ && registration_id_ != 0) {
+        g_dbus_connection_unregister_object(connection_, registration_id_);
+        registration_id_ = 0;
+    }
+    
+    // 释放总线名称所有权 - 使用异步释放避免双重释放警告
+    if (connection_) {
+        // 只使用异步释放，避免同步释放可能导致的警告
+        g_bus_unown_name(name_owner_id_);
+        std::cout << "[DBusAdapter] 总线名称释放请求已发送" << std::endl;
+    }
+    
+    // 强制关闭连接，确保客户端能检测到断开
+    if (connection_) {
+        // 关闭连接，触发客户端的连接断开检测
+        g_dbus_connection_close_sync(connection_, nullptr, nullptr);
+        g_object_unref(connection_);
+        connection_ = nullptr;
+    }
+    
+    // 释放自省数据
     if (introspection_data_) {
         g_dbus_node_info_unref(introspection_data_);
+        introspection_data_ = nullptr;
     }
-    // connection_由GIO自动管理，无需手动unref
+    
+    std::cout << "[DBusAdapter] 资源清理完成" << std::endl;
 }
 
 bool DBusAdapter::init() {
@@ -121,9 +161,9 @@ bool DBusAdapter::init() {
 
     main_loop_ = g_main_loop_new(nullptr, FALSE);
     // 注册 well-known bus name，确保 client 能找到 service
-    guint name_owner_id = g_bus_own_name_on_connection(
+    name_owner_id_ = g_bus_own_name_on_connection(
         connection_,
-        SERVICE_NAME, // "com.example.TestService"
+        SERVICE_NAME, 
         G_BUS_NAME_OWNER_FLAGS_NONE,
         nullptr, nullptr, nullptr, nullptr
     );
@@ -195,7 +235,7 @@ static const std::unordered_map<std::string, Handler> method_table = {
         FileChunk chunk;
         
         // 声明变量用于接收数据
-        GVariant* byte_array_variant = nullptr;  // 接收包装的字节数组variant
+        GVariant* byte_array_variant = nullptr;
         gconstpointer data_ptr = nullptr;
         gsize data_size = 0;
         gchar* userid = nullptr;
@@ -206,9 +246,10 @@ static const std::unordered_map<std::string, Handler> method_table = {
         gint fileLength = 0;
         guint fileMode = 0;
         gboolean isLastChunk = FALSE;
+        gchar* transferId = nullptr;
         
-        // 使用与客户端完全匹配的格式字符串
-        g_variant_get(params, "(@ayssiuiiub)", 
+        // 使用与客户端完全匹配的格式字符串，添加transferId参数
+        g_variant_get(params, "(@ayssiuiiubs)", 
                     &byte_array_variant,  // 接收variant，而不是直接的数据指针
                     &userid, 
                     &fileName, 
@@ -217,7 +258,10 @@ static const std::unordered_map<std::string, Handler> method_table = {
                     &chunkLength, 
                     &fileLength, 
                     &fileMode, 
-                    &isLastChunk);
+                    &isLastChunk,
+                    &transferId);
+        
+        // std::cout << "[DBusAdapter] transferId: " << (transferId ? transferId : "null") << std::endl;
         
         // 从variant中提取实际的字节数组数据
         if (byte_array_variant) {
@@ -246,6 +290,13 @@ static const std::unordered_map<std::string, Handler> method_table = {
             chunk.fileName[0] = '\0';
         }
         
+        if (transferId) {
+            strncpy(chunk.transferId, transferId, sizeof(chunk.transferId) - 1);
+            chunk.transferId[sizeof(chunk.transferId) - 1] = '\0';
+        } else {
+            chunk.transferId[0] = '\0';
+        }
+        
         // 设置其他字段
         chunk.fileIndex = fileIndex;
         chunk.totalChunks = totalChunks;
@@ -260,17 +311,78 @@ static const std::unordered_map<std::string, Handler> method_table = {
         }
         g_free(userid);
         g_free(fileName);
+        g_free(transferId);
         
         // 调用业务逻辑方法
         bool result = svc->SendFileChunk(chunk);
         
         // 返回结果
         g_dbus_method_invocation_return_value(inv, g_variant_new("(b)", result));
+    }},
+    {"GetTransferStatus", [](GVariant* params, GDBusMethodInvocation* inv, ITestService* svc) {
+        gchar* transferId = nullptr;
+        gchar* userid = nullptr;
+        gchar* fileName = nullptr;
+        
+        g_variant_get(params, "(sss)", &transferId, &userid, &fileName);
+        
+        // 调用业务逻辑获取传输状态
+        TransferStatus status = svc->GetTransferStatus(
+            transferId ? transferId : "", 
+            userid ? userid : "", 
+            fileName ? fileName : "");
+        
+        // 返回传输状态，格式为(sisiiuibtt)
+        // s: 传输ID, i: 状态码, s: 状态消息, i: 总块数, i: 已接收块数, u: 文件长度, i: 已接收长度, b: 是否完成, t: 开始时间, t: 最后更新时间
+        g_dbus_method_invocation_return_value(inv, 
+            g_variant_new("((sisiiuibtt))", 
+                transferId ? transferId : "", 
+                status.statusCode, 
+                "传输状态", 
+                status.totalChunks, 
+                status.receivedChunks, 
+                (guint)status.fileLength, 
+                status.receivedLength, 
+                status.isCompleted,
+                (guint64)time(nullptr) - 3600, // 开始时间（示例：1小时前）
+                (guint64)time(nullptr)));      // 最后更新时间
+        
+        g_free(transferId);
+        g_free(userid);
+        g_free(fileName);
+    }},
+    {"GetMissingChunks", [](GVariant* params, GDBusMethodInvocation* inv, ITestService* svc) {
+        gchar* transferId = nullptr;
+        gchar* userid = nullptr;
+        gchar* fileName = nullptr;
+        
+        g_variant_get(params, "(sss)", &transferId, &userid, &fileName);
+        
+        // 调用业务逻辑获取缺失块列表
+        std::vector<int> missingChunks = svc->GetMissingChunks(
+            transferId ? transferId : "", 
+            userid ? userid : "", 
+            fileName ? fileName : "");
+        
+        // 将vector<int>转换为GVariant数组
+        GVariantBuilder* builder = g_variant_builder_new(G_VARIANT_TYPE("ai"));
+        for (int chunkIndex : missingChunks) {
+            g_variant_builder_add(builder, "i", chunkIndex);
+        }
+        
+        // 返回缺失块列表
+        g_dbus_method_invocation_return_value(inv, 
+            g_variant_new("(ai)", builder));
+        
+        g_variant_builder_unref(builder);
+        g_free(transferId);
+        g_free(userid);
+        g_free(fileName);
     }}
 };
 
 void DBusAdapter::handle_method_call(GDBusConnection* /*connection*/,
-                                     const gchar* /*sender*/,
+                                     const gchar* sender,
                                      const gchar* /*object_path*/,
                                      const gchar* /*interface_name*/,
                                      const gchar* method_name,
@@ -280,7 +392,12 @@ void DBusAdapter::handle_method_call(GDBusConnection* /*connection*/,
     DBusAdapter* adapter = static_cast<DBusAdapter*>(user_data);
     ITestService* service = adapter->getTestService();
 
-    std::cout << "[DBusAdapter] Received method call: " << method_name << std::endl;
+    // 记录客户端标识信息
+    if (sender) {
+        std::cout << "[DBusAdapter] 收到来自客户端 " << sender << " 的方法调用: " << method_name << std::endl;
+    } else {
+        std::cout << "[DBusAdapter] 收到方法调用: " << method_name << " (发送者未知)" << std::endl;
+    }
 
     auto it = method_table.find(method_name);
     if (it != method_table.end()) {

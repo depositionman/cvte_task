@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <string>
+#include "FileTransfer.h"  // 包含文件传输配置宏
 
 // 内存块结构
 struct MemoryBlock {
