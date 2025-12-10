@@ -2,12 +2,13 @@
 #include "ITestService.h"
 #include "ITestListener.h"
 #include "FileTransfer.h"
+#include "DBusAdapter.h" // 添加DBusAdapter头文件包含
 #include <vector>
 #include <mutex>
 
 class TestService : public ITestService {
 public:
-    TestService() = default;
+    explicit TestService(DBusAdapter* dbus_adapter); // 修改构造函数，接受DBusAdapter指针
     ~TestService() = default;
 
     // ITestService接口实现
@@ -32,6 +33,9 @@ public:
 
     // 注册观察者
     void registerListener(ITestListener* listener);
+    
+    // 设置DBusAdapter指针
+    void setDBusAdapter(DBusAdapter* dbus_adapter);
 
 private:
     // 广播辅助函数
@@ -43,4 +47,5 @@ private:
 
     std::vector<ITestListener*> listeners_;  // 观察者列表
     std::mutex listener_mutex_;              // 观察者列表锁
+    DBusAdapter* dbus_adapter_;              // DBus适配器指针
 };

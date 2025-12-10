@@ -98,3 +98,15 @@ install(TARGETS training
 install(TARGETS server
     RUNTIME DESTINATION /usr/bin  # 可执行文件安装路径
 )
+
+# 14. 安装头文件到系统头文件目录
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/Include/
+    DESTINATION /usr/include/libtraining  # 头文件安装路径
+    FILES_MATCHING PATTERN "*.h"  # 只安装.h文件
+)
+
+# 15. 安装公共头文件
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/../common/Include/
+    DESTINATION /usr/include/libtraining/common  # 公共头文件安装路径
+    FILES_MATCHING PATTERN "*.h"  # 只安装.h文件
+)

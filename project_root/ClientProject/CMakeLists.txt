@@ -28,13 +28,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     message(STATUS "Client Build Mode: Release (无调试符号，体积最小)")
 endif()
 
-# 6. 头文件路径（关键：引用Service的Include目录，确保接口兼容）
+# 6. 头文件路径（关键：使用系统安装的头文件目录，确保接口兼容）
 include_directories(
     ${PROJECT_SOURCE_DIR}/Include                  # 客户端自身头文件
     ${PROJECT_SOURCE_DIR}/Include/communication    # 客户端dbus模块头文件
     ${PROJECT_SOURCE_DIR}/Include/filetransfer     # 客户端filetransfer模块头文件
-    ${PROJECT_SOURCE_DIR}/../ServiceProject/Include  # 引用服务端的核心接口头文件（ITestService/TestData等）
-    ${PROJECT_SOURCE_DIR}/../common/Include        # 引用公共头文件（TestData.h等）
+    /usr/include/libtraining                       # 系统安装的服务端头文件（ITestService/TestData等）
+    /usr/include/libtraining/common                # 系统安装的公共头文件（TestData.h等）
     ${GIO2_INCLUDE_DIRS}                           # GIO头文件路径（通过pkg-config自动获取）
     ${GLIB_INCLUDE_DIRS}                           # GLib头文件路径（通过pkg-config自动获取）
 )
@@ -44,17 +44,16 @@ set(CLIENT_EXEC_SOURCES
     Sources/main/ClientMain.cpp        # 客户端入口函数
     Sources/communication/ClientDBus.cpp        # 客户端gdbus连接/接口调用
     Sources/filetransfer/FileSender.cpp        # 文件读取/分包/共享内存写入
-    ../common/Sources/MemoryPool.cpp        # 内存池实现
-    ../common/Sources/ThreadPool.cpp        # 线程池实现
 )
 
 # 8. 生成client可执行文件
 add_executable(client ${CLIENT_EXEC_SOURCES})
 
-# 9. 链接客户端依赖的第三方库（与服务端一致）
+# 9. 链接客户端依赖的第三方库和服务端动态库
 target_link_libraries(client
+    # 链接系统安装的libtraining.so动态库
+    training
     # gdbus核心库（通过pkg-config自动获取）
-    ${GIO2_LIBRARIES}
     ${GIO2_LIBRARIES}
     # GLib库（DBus依赖，通过pkg-config自动获取）
     ${GLIB_LIBRARIES}

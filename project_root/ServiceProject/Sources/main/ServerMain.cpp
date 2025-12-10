@@ -94,8 +94,8 @@ int main() {
     // 2. 初始化线程安全数据存储
     SafeData::getInstance();
 
-    // 3. 初始化TestService
-    g_test_service = new TestService();
+    // 3. 初始化TestService - 先传递nullptr，稍后设置DBusAdapter
+    g_test_service = new TestService(nullptr);
     if (!g_test_service) {
         std::cerr << "[Server] TestService初始化失败！" << std::endl;
         return -1;
@@ -117,6 +117,8 @@ int main() {
         delete g_test_service;
         return -1;
     }
+    // 设置TestService的DBusAdapter指针
+    g_test_service->setDBusAdapter(g_dbus_adapter);
 
     // 6. 启动传输状态检查线程
     std::thread status_check_thread(check_transfer_status_thread);

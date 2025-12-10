@@ -8,6 +8,13 @@
 
 using json = nlohmann::json;
 
+TestService::TestService(DBusAdapter* dbus_adapter) : dbus_adapter_(dbus_adapter) {
+}
+
+void TestService::setDBusAdapter(DBusAdapter* dbus_adapter) {
+    dbus_adapter_ = dbus_adapter;
+}
+
 // ITestService接口实现 - Set方法
 bool TestService::SetTestBool(bool param) {
     std::cout << "[TestService] SetTestBool: " << std::boolalpha << param << std::endl;
@@ -204,9 +211,8 @@ void TestService::broadcastTestBoolChanged(bool param) {
         }
     }
     // D-Bus信号广播
-    extern DBusAdapter* g_dbus_adapter;
-    if (g_dbus_adapter) {
-        g_dbus_adapter->emitTestBoolChanged(param);
+    if (dbus_adapter_) {
+        dbus_adapter_->emitTestBoolChanged(param);
         std::cout << "[TestService] Emitting TestBoolChanged signal" << std::endl;
     }
 }
@@ -218,9 +224,8 @@ void TestService::broadcastTestIntChanged(int param) {
             listener->OnTestIntChanged(param);
         }
     }
-    extern DBusAdapter* g_dbus_adapter;
-    if (g_dbus_adapter) {
-        g_dbus_adapter->emitTestIntChanged(param);
+    if (dbus_adapter_) {
+        dbus_adapter_->emitTestIntChanged(param);
     }
 }
 
@@ -231,9 +236,8 @@ void TestService::broadcastTestDoubleChanged(double param) {
             listener->OnTestDoubleChanged(param);
         }
     }
-    extern DBusAdapter* g_dbus_adapter;
-    if (g_dbus_adapter) {
-        g_dbus_adapter->emitTestDoubleChanged(param);
+    if (dbus_adapter_) {
+        dbus_adapter_->emitTestDoubleChanged(param);
     }
 }
 
@@ -244,9 +248,8 @@ void TestService::broadcastTestStringChanged(const std::string& param) {
             listener->OnTestStringChanged(param);
         }
     }
-    extern DBusAdapter* g_dbus_adapter;
-    if (g_dbus_adapter) {
-        g_dbus_adapter->emitTestStringChanged(param);
+    if (dbus_adapter_) {
+        dbus_adapter_->emitTestStringChanged(param);
     }
 }
 
@@ -257,8 +260,7 @@ void TestService::broadcastTestInfoChanged(const TestInfo& param) {
             listener->OnTestInfoChanged(param);
         }
     }
-    extern DBusAdapter* g_dbus_adapter;
-    if (g_dbus_adapter) {
-        g_dbus_adapter->emitTestInfoChanged(param);
+    if (dbus_adapter_) {
+        dbus_adapter_->emitTestInfoChanged(param);
     }
 }
