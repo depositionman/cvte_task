@@ -64,7 +64,7 @@ target_link_libraries(client
     pthread
 )
 
-# 10. 可选：安装规则（部署到车载系统）
+# 10. 安装规则
 install(TARGETS client
     RUNTIME DESTINATION /usr/bin
 )

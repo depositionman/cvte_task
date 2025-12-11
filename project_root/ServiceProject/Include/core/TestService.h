@@ -8,7 +8,7 @@
 
 class TestService : public ITestService {
 public:
-    explicit TestService(DBusAdapter* dbus_adapter); // 修改构造函数，接受DBusAdapter指针
+    TestService(DBusAdapter* dbus_adapter); 
     ~TestService() = default;
 
     // ITestService接口实现
@@ -29,7 +29,6 @@ public:
     // 断点续传接口
     TransferStatus GetTransferStatus(const std::string& transferId, const std::string& userid, const std::string& fileName) override;
     std::vector<int> GetMissingChunks(const std::string& transferId, const std::string& userid, const std::string& fileName) override;
-    bool ResumeTransfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk) override;
 
     // 注册观察者
     void registerListener(ITestListener* listener);

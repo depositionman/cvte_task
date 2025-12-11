@@ -90,7 +90,7 @@ target_link_libraries(server
     nlohmann_json::nlohmann_json
     # --------------------------------------------------------------------------------
 )
-# 13. 可选：安装规则（便于部署到车载系统）
+# 13. 安装规则
 # 安装libtraining.so到系统库目录，server到可执行目录
 install(TARGETS training
     LIBRARY DESTINATION /usr/lib  # 动态库安装路径

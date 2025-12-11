@@ -246,11 +246,6 @@ size_t get_receiver_thread_pool_size() {
     return receiver_thread_pool->get_thread_count();
 }
 
-// 恢复传输（使用位图进行重传）
-bool resume_transfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk) {
-
-}
-
 // 组装并保存文件
 bool assemble_and_save_file(const std::string& transferId, const std::string& fileName, const std::string& outdir, const TransferStatus& status) {
     std::lock_guard<std::mutex> lock(chunk_storage_mutex);

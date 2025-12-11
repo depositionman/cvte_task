@@ -23,4 +23,3 @@ size_t get_receiver_thread_pool_size();
 // 断点续传相关函数
 TransferStatus get_transfer_status(const std::string& transferId, const std::string& userid, const std::string& fileName);
 std::vector<int> get_missing_chunks(const std::string& transferId, const std::string& userid, const std::string& fileName);
-bool resume_transfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk);

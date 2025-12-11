@@ -23,5 +23,4 @@ public:
     // 断点续传接口
     virtual TransferStatus GetTransferStatus(const std::string& transferId, const std::string& userid, const std::string& fileName) = 0;
     virtual std::vector<int> GetMissingChunks(const std::string& transferId, const std::string& userid, const std::string& fileName) = 0;
-    virtual bool ResumeTransfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk) = 0;
 };

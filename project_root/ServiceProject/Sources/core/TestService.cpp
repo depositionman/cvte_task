@@ -183,16 +183,6 @@ std::vector<int> TestService::GetMissingChunks(const std::string& transferId, co
     return ::get_missing_chunks(transferId, userid, fileName);
 }
 
-bool TestService::ResumeTransfer(const std::string& transferId, const std::string& userid, const std::string& fileName, int startChunk) {
-    std::cout << "[TestService] ResumeTransfer: transferId=" << transferId 
-              << ", userid=" << userid 
-              << ", fileName=" << fileName 
-              << ", startChunk=" << startChunk << std::endl;
-    
-    // 调用FileReceiver恢复传输
-    return ::resume_transfer(transferId, userid, fileName, startChunk);
-}
-
 // 观察者模式相关方法
 void TestService::registerListener(ITestListener* listener) {
     if (listener) {
