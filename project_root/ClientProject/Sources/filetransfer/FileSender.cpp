@@ -241,6 +241,7 @@ void send_file(const std::string& filepath, const std::string& userid, mode_t mo
         std::cerr << "[FileSender] 未初始化" << std::endl;
         return;
     }
+    std::cout << "[send_file] filemode:" << mode << std::endl;
 
     // 检查并发文件数限制
     {
@@ -266,10 +267,10 @@ void send_file(const std::string& filepath, const std::string& userid, mode_t mo
     off_t file_length = st.st_size;
     int total_chunks = (file_length + FILE_CHUNK_SIZE - 1) / FILE_CHUNK_SIZE; // FILE_CHUNK_SIZE per chunk
 
-    std::cout << "[FileSender] 开始发送文件: " << filepath 
-              << " 大小: " << file_length << " 字节" 
-              << " 总块数: " << total_chunks 
-              << " 传输ID: " << (!transferId.empty() ? transferId : "无") << std::endl;
+    // std::cout << "[FileSender] 开始发送文件: " << filepath 
+    //           << " 大小: " << file_length << " 字节" 
+    //           << " 总块数: " << total_chunks 
+    //           << " 传输ID: " << (!transferId.empty() ? transferId : "无") << std::endl;
 
     // 初始化进度跟踪器
     {
@@ -285,6 +286,8 @@ void send_file(const std::string& filepath, const std::string& userid, mode_t mo
     // 使用线程池并发发送所有文件块
     std::vector<std::future<void>> futures;
     futures.reserve(total_chunks);
+
+    // std::cout << "[send_file] filemode:" << mode << std::endl;
 
     for (int i = 0; i < total_chunks; ++i) {
         off_t offset = i * FILE_CHUNK_SIZE;
@@ -365,10 +368,11 @@ void send_entry(const std::string& path, const std::string& userid, mode_t mode,
     }
 
     // std::cout << "[FileSender] 发送入口: " << path << std::endl;
+    std::cout << "[send_entry] filemode:" << mode << std::endl;
     
     if (S_ISDIR(st.st_mode)) {
         send_folder(path, userid, mode, transferId);
-    } else {
+    } else { 
         send_file(path, userid, mode, transferId);
     }
 }

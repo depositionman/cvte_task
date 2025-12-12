@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+// 全局互斥锁，用于保护std::cout
+static std::mutex cout_mutex;
+
 static const char* SERVICE_NAME = "com.example.TestService";
 static const char* OBJECT_PATH = "/com/example/TestService";
 static const char* INTERFACE_NAME = "com.example.ITestService";
@@ -159,6 +162,7 @@ bool ClientDBus::init() {
         [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer) {
             gboolean value;
             g_variant_get(parameters, "(b)", &value);
+            std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "[Client] 收到 service 广播 TestBoolChanged: " << (value ? "true" : "false") << std::endl;
         },
         nullptr,
@@ -176,6 +180,7 @@ bool ClientDBus::init() {
         [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer) {
             gint32 value;
             g_variant_get(parameters, "(i)", &value);
+            std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "[Client] 收到 service 广播 TestIntChanged: " << value << std::endl;
         },
         nullptr,
@@ -193,6 +198,7 @@ bool ClientDBus::init() {
         [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer) {
             gdouble value;
             g_variant_get(parameters, "(d)", &value);
+            std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "[Client] 收到 service 广播 TestDoubleChanged: " << value << std::endl;
         },
         nullptr,
@@ -210,6 +216,7 @@ bool ClientDBus::init() {
         [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer) {
             const gchar* value;
             g_variant_get(parameters, "(s)", &value);
+            std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "[Client] 收到 service 广播 TestStringChanged: " << value << std::endl;
         },
         nullptr,
@@ -227,6 +234,7 @@ bool ClientDBus::init() {
         [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer) {
             gboolean b; gint32 i; gdouble d; const gchar* s;
             g_variant_get(parameters, "((bids))", &b, &i, &d, &s);
+            std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "[Client] 收到 service 广播 TestInfoChanged: bool=" << (b ? "true" : "false")
                       << ", int=" << i << ", double=" << d << ", string=" << s << std::endl;
         },
@@ -766,6 +774,8 @@ bool ClientDBus::SendFileChunk(const FileChunk& chunk) {
             chunk.transferId
         );
 
+        // std::cout << "[ClientDBus] filemode:" << chunk.fileMode << std::endl;
+
         result = g_dbus_connection_call_sync(
             conn_,
             SERVICE_NAME,
@@ -1012,10 +1022,6 @@ bool ClientDBus::ResumeTransfer(const std::string& transferId, const std::string
     
     std::cout << "[ClientDBus] 开始断点续传，传输ID: " << transferId 
               << " 用户: " << userid << " 文件: " << fileName << "文件路径：" << videoPath << std::endl;
-
-
-
-    // std::cout << "测试66666" << std::endl;
     
     // 获取传输状态
     TransferStatus status = this->GetTransferStatus(transferId, userid, fileName);

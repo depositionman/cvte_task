@@ -78,11 +78,14 @@ bool TestService::SetTestInfo(const TestInfo& info) {
 bool TestService::GetTestBool() {
     std::cout << "[TestService] GetTestBool" << std::endl;
     std::string value;
+    bool result = false;
     if (SafeData::getInstance()->getData("test_bool", value)) {
         // 兼容"1"/"0"或"true"/"false"两种存储格式
-        return (value == "1" || value == "true" || value == "TRUE");
+        result = (value == "1" || value == "true" || value == "TRUE");
     }
-    return false; 
+    // 无论数据是否存在都发送广播信号
+    broadcastTestBoolChanged(result);
+    return result; 
 }
 
 int TestService::GetTestInt() {
@@ -201,9 +204,13 @@ void TestService::broadcastTestBoolChanged(bool param) {
         }
     }
     // D-Bus信号广播
+    std::cout << "[TestService] broadcastTestBoolChanged called, dbus_adapter_: " << dbus_adapter_ << std::endl;
     if (dbus_adapter_) {
+        std::cout << "[TestService] Calling emitTestBoolChanged with value: " << param << std::endl;
         dbus_adapter_->emitTestBoolChanged(param);
         std::cout << "[TestService] Emitting TestBoolChanged signal" << std::endl;
+    } else {
+        std::cout << "[TestService] dbus_adapter_ is null, cannot emit signal" << std::endl;
     }
 }
 

@@ -248,9 +248,8 @@ static const std::unordered_map<std::string, Handler> method_table = {
         gboolean isLastChunk = FALSE;
         gchar* transferId = nullptr;
         
-        // 使用与客户端完全匹配的格式字符串，添加transferId参数
         g_variant_get(params, "(@ayssiuiiubs)", 
-                    &byte_array_variant,  // 接收variant，而不是直接的数据指针
+                    &byte_array_variant, 
                     &userid, 
                     &fileName, 
                     &fileIndex, 
@@ -262,30 +261,27 @@ static const std::unordered_map<std::string, Handler> method_table = {
                     &transferId);
         
         // std::cout << "[DBusAdapter] transferId: " << (transferId ? transferId : "null") << std::endl;
-        
-        // 从variant中提取实际的字节数组数据
+        // std::cout << "[ClientDBus] filemode:" << chunk.fileMode << std::endl;
+
         if (byte_array_variant) {
             data_ptr = g_variant_get_fixed_array(byte_array_variant, &data_size, sizeof(guchar));
         }
         
-        // 安全地复制数据到chunk结构
         if (data_ptr && data_size > 0) {
-            // 确保不会溢出chunk.data数组
             size_t copy_size = (data_size > sizeof(chunk.data)) ? sizeof(chunk.data) : data_size;
             memcpy(chunk.data, data_ptr, copy_size);
         }
         
-        // 安全地复制字符串
         if (userid) {
             strncpy(chunk.userid, userid, sizeof(chunk.userid) - 1);
-            chunk.userid[sizeof(chunk.userid) - 1] = '\0';  // 确保以null结尾
+            chunk.userid[sizeof(chunk.userid) - 1] = '\0';  
         } else {
             chunk.userid[0] = '\0';
         }
         
         if (fileName) {
             strncpy(chunk.fileName, fileName, sizeof(chunk.fileName) - 1);
-            chunk.fileName[sizeof(chunk.fileName) - 1] = '\0';  // 确保以null结尾
+            chunk.fileName[sizeof(chunk.fileName) - 1] = '\0'; 
         } else {
             chunk.fileName[0] = '\0';
         }
@@ -333,7 +329,6 @@ static const std::unordered_map<std::string, Handler> method_table = {
             fileName ? fileName : "");
         
         // 返回传输状态，格式为(sisiiuibtt)
-        // s: 传输ID, i: 状态码, s: 状态消息, i: 总块数, i: 已接收块数, u: 文件长度, i: 已接收长度, b: 是否完成, t: 开始时间, t: 最后更新时间
         g_dbus_method_invocation_return_value(inv, 
             g_variant_new("((sisiiuibtt))", 
                 transferId ? transferId : "", 

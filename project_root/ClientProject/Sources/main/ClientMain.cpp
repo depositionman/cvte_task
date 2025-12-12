@@ -11,7 +11,7 @@
 #include "FileSender.h"
 
 ClientDBus client;
-std::string videoPath = "/home/wjl/project/project_root/ClientProject/testfile/testvideo.mp4";
+std::string videoPath = "/home/wjl/project/project_root/ClientProject/build/client";
 std::string transferId = "video_transfer_001";
 std::string userId = "test_user";
 
@@ -317,7 +317,7 @@ void send_file_test() {
     std::cout << "传输ID: " << transferId << std::endl;
     std::cout << "用户ID: " << userId << std::endl;
     
-    send_entry(videoPath, userId, 0644, transferId);
+    send_entry(videoPath, userId, fileStat.st_mode, transferId);
 }
 
 void send_folderPath_test() {
@@ -333,7 +333,7 @@ void send_folderPath_test() {
     std::cout << "传输ID: " << transferId << std::endl;
     std::cout << "用户ID: " << userId << std::endl;
     
-    send_entry(folderPath, userId, 0644, transferId);
+    // send_entry(folderPath, userId, 0644, transferId);
 }
 
 void gain_transferStatus_missblock() {
@@ -428,6 +428,13 @@ void handle_menu_choice(char choice) {
     }
 }
 
+// 运行GLib主循环的线程函数
+void glib_main_loop_thread() {
+    GMainLoop* main_loop = g_main_loop_new(nullptr, FALSE);
+    g_main_loop_run(main_loop);
+    g_main_loop_unref(main_loop);
+}
+
 int main() {
     signal(SIGINT, signalHandler);
     std::cout << "[Client] 启动..." << std::endl;
@@ -443,6 +450,12 @@ int main() {
     // 设置DBus客户端实例
     set_dbus_client(&client);
     
+    // 启动GLib主循环线程
+    std::thread glib_thread(glib_main_loop_thread);
+    glib_thread.detach(); // 分离线程，让它在后台运行
+    
+    std::cout << "[Client] GLib主循环已启动，正在监听D-Bus信号..." << std::endl;
+    
     // 显示菜单循环
     while (true) {
         show_menu();
@@ -452,6 +465,8 @@ int main() {
         std::cin.ignore();
         std::cin.get();
     }
+
+    
     
     return 0;
 }

@@ -47,7 +47,7 @@ struct FileChunkCache {
 static std::map<std::string, std::map<int, FileChunkCache>> file_chunk_storage;
 static std::mutex chunk_storage_mutex;
 
-bool assemble_and_save_file(const std::string& transferId, const std::string& fileName, const std::string& outdir, const TransferStatus& status);
+bool assemble_and_save_file(const std::string& transferId, const std::string& fileName, const mode_t fileMode, const std::string& outdir, const TransferStatus& status);
 
 // 初始化文件接收器
 int init_file_receiver(size_t thread_count, size_t memory_pool_blocks) {
@@ -169,8 +169,9 @@ void process_file_chunk(const FileChunk& chunk, const std::string& outdir) {
                 std::cout << "[FileReceiver] 文件传输完成: " << key 
                           << " (" << final_status.receivedChunks << "/" << final_status.totalChunks << ")" << std::endl;
                 
+                std::cout << "process_file_chunk] fileMode:" << chunk.fileMode << std::endl;
                 // 组装并保存文件
-                if (assemble_and_save_file(key, std::string(chunk.fileName), outdir, final_status)) {
+                if (assemble_and_save_file(key, std::string(chunk.fileName), chunk.fileMode, outdir, final_status)) {
                     std::cout << "[FileReceiver] 文件保存成功: " << chunk.fileName << std::endl;
                 } else {
                     std::cerr << "[FileReceiver] 文件保存失败: " << chunk.fileName << std::endl;
@@ -247,8 +248,10 @@ size_t get_receiver_thread_pool_size() {
 }
 
 // 组装并保存文件
-bool assemble_and_save_file(const std::string& transferId, const std::string& fileName, const std::string& outdir, const TransferStatus& status) {
+bool assemble_and_save_file(const std::string& transferId, const std::string& fileName, const mode_t fileMode, const std::string& outdir, const TransferStatus& status) {
     std::lock_guard<std::mutex> lock(chunk_storage_mutex);
+
+    std::cout << "[assemble_and_save_file] fileMode:" << fileMode << std::endl;
     
     auto it = file_chunk_storage.find(transferId);
     if (it == file_chunk_storage.end()) {
@@ -308,6 +311,12 @@ bool assemble_and_save_file(const std::string& transferId, const std::string& fi
     }
     
     outputFile.close();
+    
+    // 设置文件权限
+    if (chmod(outputPath.c_str(), fileMode) != 0) {
+        std::cerr << "[assemble_and_save_file] 设置文件权限失败: " << strerror(errno) << std::endl;
+        // 权限设置失败不影响文件组装结果，继续执行
+    }
     
     // 验证文件大小
     if (totalWritten != static_cast<size_t>(status.fileLength)) {

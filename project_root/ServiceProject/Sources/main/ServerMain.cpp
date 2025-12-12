@@ -9,16 +9,13 @@
 #include "FileReceiver.h"
 #include "FileTransfer.h"
 
-// 全局变量：DBus适配器实例（确保生命周期与程序一致）
 DBusAdapter* g_dbus_adapter = nullptr;
-// 全局变量：TestService实例（核心接口实现）
 TestService* g_test_service = nullptr;
 
-// 信号处理：捕获Ctrl+C，优雅退出
+// 信号处理
 void signalHandler(int sig) {
     if (sig == SIGINT) {
         std::cout << "\n[Server] 接收到退出信号，正在清理资源..." << std::endl;
-        // 释放资源
         if (g_dbus_adapter) {
             delete g_dbus_adapter;
             g_dbus_adapter = nullptr;
@@ -27,7 +24,6 @@ void signalHandler(int sig) {
             delete g_test_service;
             g_test_service = nullptr;
         }
-        // 清理FileReceiver
         cleanup_file_receiver();
         std::cout << "[Server] FileReceiver资源已清理" << std::endl;
         std::cout << "[Server] 资源清理完成，退出成功" << std::endl;
